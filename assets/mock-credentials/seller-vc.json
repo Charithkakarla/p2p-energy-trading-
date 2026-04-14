@@ -1,0 +1,11 @@
+{
+  "credentialId": "VC-SELLER-2026-001",
+  "role": "seller",
+  "holderName": "Kakarla Charith",
+  "prosumerId": "PVVNL-PR-114209",
+  "meterId": "MTR-121004523",
+  "generationCapacityKw": 5.2,
+  "issuer": "PVVNL",
+  "issuedAt": "2026-04-14T10:00:00Z",
+  "status": "valid"
+}

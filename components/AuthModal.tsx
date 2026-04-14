@@ -113,7 +113,7 @@ export function AuthModal({ visible, onClose }: AuthModalProps) {
                 </ThemedText>
               </ThemedText>
 
-              <div style={s.otpRow}>
+              <View style={s.otpRow}>
                 {otp.map((digit, idx) => (
                   <TextInput
                     key={idx}
@@ -124,7 +124,7 @@ export function AuthModal({ visible, onClose }: AuthModalProps) {
                     onChangeText={(t) => handleOtpChange(t, idx)}
                   />
                 ))}
-              </div>
+              </View>
 
               <Pressable style={({hovered}: any) => [s.verifyBtn, hovered && { backgroundColor: '#16a34a' }]} onPress={verifyOtp}>
                 <ThemedText style={s.verifyBtnTxt}>Verify & Login</ThemedText>
@@ -163,14 +163,14 @@ const s: any = StyleSheet.create({
   inputValid: { borderColor: '#22c55e', borderWidth: 2 },
   prefix: { paddingHorizontal: 16, borderRightWidth: 1, borderRightColor: '#f1f5f9', justifyContent: 'center', height: '100%' },
   prefixTxt: { fontSize: 16, fontWeight: '600', color: '#0f172a' },
-  input: { flex: 1, height: '100%', fontSize: 18, color: '#0f172a', paddingHorizontal: 16, outlineStyle: 'none' },
+  input: { flex: 1, height: '100%', fontSize: 18, color: '#0f172a', paddingHorizontal: 16 },
   
   btn: { width: '100%', height: 56, backgroundColor: '#22c55e', borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   btnDisabled: { backgroundColor: '#cbd5e1' },
   btnTxt: { fontSize: 16, fontWeight: '700', color: '#fff' },
 
   otpRow: { flexDirection: 'row', gap: 10, marginBottom: 32 },
-  otpBox: { width: 45, height: 55, borderRadius: 8, borderWidth: 1, borderColor: '#e2e8f0', backgroundColor: '#fff', fontSize: 20, fontWeight: '700', textAlign: 'center', color: '#0f172a', outlineStyle: 'none' },
+  otpBox: { width: 45, height: 55, borderRadius: 8, borderWidth: 1, borderColor: '#e2e8f0', backgroundColor: '#fff', fontSize: 20, fontWeight: '700', textAlign: 'center', color: '#0f172a' },
   otpBoxFilled: { backgroundColor: '#f0fdf4', borderColor: '#22c55e' },
 
   verifyBtn: { width: '100%', height: 52, backgroundColor: '#22c55e', borderRadius: 12, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: 16 },

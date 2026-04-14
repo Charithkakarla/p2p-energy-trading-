@@ -1,5 +1,6 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
+import { View } from 'react-native';
 import { Home, Wallet, ArrowRightLeft, User } from 'lucide-react-native';
 
 export default function TabLayout() {
@@ -14,17 +15,20 @@ export default function TabLayout() {
         tabBarInactiveTintColor: inactiveColor,
         tabBarStyle: {
           backgroundColor: '#ffffff',
-          borderTopWidth: 1,
-          borderTopColor: '#f1f5f9',
-          height: 70,
-          paddingBottom: 12,
-          paddingTop: 12,
-          elevation: 0,
+          borderTopWidth: 0,
+          height: 78,
+          paddingBottom: 10,
+          paddingTop: 8,
+          elevation: 12,
+          shadowColor: '#000',
+          shadowOpacity: 0.08,
+          shadowRadius: 8,
+          shadowOffset: { width: 0, height: -2 },
         },
         tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '600',
-          marginTop: 4,
+          fontSize: 11,
+          fontWeight: '700',
+          marginTop: 2,
         },
       }}>
       <Tabs.Screen
@@ -32,7 +36,11 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           tabBarLabel: 'Home',
-          tabBarIcon: ({ color, size }) => <Home size={26} color={color} fill={color === activeColor ? color : 'transparent'} strokeWidth={color === activeColor ? 2 : 1.5} />,
+          tabBarIcon: ({ color, focused }) => (
+            <View style={{ width: 34, height: 34, borderRadius: 10, justifyContent: 'center', alignItems: 'center', backgroundColor: focused ? '#ecfdf3' : 'transparent' }}>
+              <Home size={20} color={color} fill={focused ? color : 'transparent'} strokeWidth={focused ? 2 : 1.7} />
+            </View>
+          ),
         }}
       />
       <Tabs.Screen
@@ -46,7 +54,11 @@ export default function TabLayout() {
         options={{
           title: 'Wallet',
           tabBarLabel: 'Wallet',
-          tabBarIcon: ({ color, size }) => <Wallet size={26} color={color} strokeWidth={1.5} />,
+          tabBarIcon: ({ color, focused }) => (
+            <View style={{ width: 34, height: 34, borderRadius: 10, justifyContent: 'center', alignItems: 'center', backgroundColor: focused ? '#ecfdf3' : 'transparent' }}>
+              <Wallet size={20} color={color} strokeWidth={1.7} />
+            </View>
+          ),
         }}
       />
       <Tabs.Screen
@@ -54,7 +66,11 @@ export default function TabLayout() {
         options={{
           title: 'Trades',
           tabBarLabel: 'Trades',
-          tabBarIcon: ({ color, size }) => <ArrowRightLeft size={26} color={color} strokeWidth={1.5} />,
+          tabBarIcon: ({ color, focused }) => (
+            <View style={{ width: 34, height: 34, borderRadius: 10, justifyContent: 'center', alignItems: 'center', backgroundColor: focused ? '#ecfdf3' : 'transparent' }}>
+              <ArrowRightLeft size={20} color={color} strokeWidth={1.7} />
+            </View>
+          ),
         }}
       />
       <Tabs.Screen
@@ -62,7 +78,11 @@ export default function TabLayout() {
         options={{
           title: 'Profile',
           tabBarLabel: 'Profile',
-          tabBarIcon: ({ color, size }) => <User size={26} color={color} strokeWidth={1.5} />,
+          tabBarIcon: ({ color, focused }) => (
+            <View style={{ width: 34, height: 34, borderRadius: 10, justifyContent: 'center', alignItems: 'center', backgroundColor: focused ? '#ecfdf3' : 'transparent' }}>
+              <User size={20} color={color} strokeWidth={1.7} />
+            </View>
+          ),
         }}
       />
     </Tabs>

@@ -1,0 +1,10 @@
+{
+  "credentialId": "VC-BUYER-2026-001",
+  "role": "buyer",
+  "holderName": "Kakarla Charith",
+  "consumerNumber": "PVVNL-CN-9843221",
+  "meterId": "MTR-121004523",
+  "issuer": "PVVNL",
+  "issuedAt": "2026-04-14T10:00:00Z",
+  "status": "valid"
+}

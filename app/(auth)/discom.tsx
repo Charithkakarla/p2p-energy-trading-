@@ -3,6 +3,7 @@ import { View, StyleSheet, TextInput, ScrollView, TouchableOpacity, useWindowDim
 import { router } from 'expo-router';
 import { ArrowLeft, Search, Zap, Link } from 'lucide-react-native';
 import { ThemedText } from '../../components/ThemedText';
+import { updateProfile } from '../../constants/userStore';
 
 const DISCOMS = [
   { id: 1, name: 'BSES Rajdhani Power Limited', region: 'Delhi' },
@@ -32,6 +33,14 @@ const DISCOMS = [
 export default function DiscomScreen() {
   const [selected, setSelected] = useState<number | null>(null);
   const [search, setSearch] = useState('');
+    const handleLinkProvider = () => {
+      const selectedDiscom = DISCOMS.find((item) => item.id === selected);
+      if (selectedDiscom) {
+        updateProfile({ discomName: selectedDiscom.name });
+      }
+      router.push('/(tabs)/home');
+    };
+
   
   const filtered = DISCOMS.filter(d => d.name.toLowerCase().includes(search.toLowerCase()) || d.region.toLowerCase().includes(search.toLowerCase()));
 
@@ -93,7 +102,7 @@ export default function DiscomScreen() {
         <TouchableOpacity 
           style={[s.proceedBtn, !selected && { opacity: 0.5 }]} 
           disabled={!selected}
-          onPress={() => router.push('/(tabs)/home')}
+          onPress={handleLinkProvider}
         >
           <Link size={16} color="#fff" />
           <ThemedText style={s.proceedTxt}>Link Provider</ThemedText>
@@ -113,7 +122,7 @@ const s: any = StyleSheet.create({
   skipTxt: { fontSize: 14, fontWeight: '600', color: '#64748b' },
   searchWrap: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 10, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
   searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', paddingHorizontal: 14, height: 46, gap: 10 },
-  searchInput: { flex: 1, height: '100%', fontSize: 15, color: '#0f172a', outlineStyle: 'none' },
+  searchInput: { flex: 1, height: '100%', fontSize: 15, color: '#0f172a' },
   list: { padding: 20, alignItems: 'center', gap: 14 },
   card: { width: '100%', maxWidth: 640, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 18, borderRadius: 16, borderWidth: 1, borderColor: '#e5e7eb', shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.05, shadowRadius: 5 },
   cardActive: { borderColor: '#22c55e', backgroundColor: '#f0fdf4' },
