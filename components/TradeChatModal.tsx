@@ -2,11 +2,18 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, TextInput, View, KeyboardAvoidingView, Platform } from 'react-native';
 import { ArrowRight, CheckCircle2, Send, ShieldCheck, Zap } from 'lucide-react-native';
 import { ThemedText } from './ThemedText';
+import { requestNegotiationTurn } from '../services/grokNegotiation';
 
 type ChatMessage = {
   id: string;
   sender: 'you' | 'seller';
   text: string;
+};
+
+type StoredChatEntry = {
+  sender: 'you' | 'seller';
+  text: string;
+  at: string;
 };
 
 type TradeChatModalProps = {
@@ -17,7 +24,12 @@ type TradeChatModalProps = {
   energyAmount: string;
   marketPrice: string;
   onClose: () => void;
-  onCompleteTrade: (summary: { acceptedPrice: string; counterpartName: string }) => void;
+  onCompleteTrade: (summary: {
+    acceptedPrice: string;
+    counterpartName: string;
+    negotiationSource: 'xai' | 'fallback' | 'manual';
+    transcript: StoredChatEntry[];
+  }) => void;
 };
 
 function makeMessage(sender: ChatMessage['sender'], text: string): ChatMessage {
@@ -26,6 +38,19 @@ function makeMessage(sender: ChatMessage['sender'], text: string): ChatMessage {
     sender,
     text,
   };
+}
+
+function toStoredTranscript(messages: ChatMessage[]): StoredChatEntry[] {
+  return messages.map((entry) => ({
+    sender: entry.sender,
+    text: entry.text,
+    at: new Date().toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }),
+  }));
 }
 
 export function TradeChatModal({
@@ -41,15 +66,21 @@ export function TradeChatModal({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState('');
   const [acceptedPrice, setAcceptedPrice] = useState(askingPrice);
+  const [isSending, setIsSending] = useState(false);
+  const [isFinalizingDeal, setIsFinalizingDeal] = useState(false);
 
   const roleLabel = counterpartRole === 'seller' ? 'seller' : 'buyer';
   const quickReplies = useMemo(
     () => [
-      `Can you match ${marketPrice}?`,
-      `I can buy ${energyAmount} if you hold the rate for 10 minutes.`,
+      counterpartRole === 'seller'
+        ? `Can you match ${marketPrice}?`
+        : `I can sell at ${askingPrice} if you confirm now.`,
+      counterpartRole === 'seller'
+        ? `I can buy ${energyAmount} if you hold the rate for 10 minutes.`
+        : `I can provide ${energyAmount} with immediate settlement.`,
       `Would you accept ${askingPrice} for a quick close?`,
     ],
-    [askingPrice, energyAmount, marketPrice]
+    [askingPrice, counterpartRole, energyAmount, marketPrice]
   );
 
   useEffect(() => {
@@ -63,34 +94,55 @@ export function TradeChatModal({
     ]);
     setDraft('');
     setAcceptedPrice(askingPrice);
+    setIsSending(false);
+    setIsFinalizingDeal(false);
   }, [askingPrice, counterpartName, energyAmount, visible]);
 
   const appendMessage = (text: string, sender: ChatMessage['sender']) => {
     setMessages((current) => [...current, makeMessage(sender, text)]);
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     const nextText = draft.trim();
-    if (!nextText) {
+    if (!nextText || isSending || isFinalizingDeal) {
       return;
     }
 
-    appendMessage(nextText, 'you');
+    const nextHistory = [...messages, makeMessage('you', nextText)];
+    setMessages(nextHistory);
     setDraft('');
+    setIsSending(true);
 
-    const lowerCase = nextText.toLowerCase();
-    if (lowerCase.includes('match') || lowerCase.includes('buy') || lowerCase.includes('accept')) {
-      setAcceptedPrice(askingPrice);
-      appendMessage(`I can confirm the ${askingPrice} rate. Ready to lock it in for ${energyAmount}.`, 'seller');
-      return;
+    const turn = await requestNegotiationTurn({
+      counterpartName,
+      counterpartRole,
+      askingPrice,
+      energyAmount,
+      marketPrice,
+      history: nextHistory,
+      userMessage: nextText,
+    });
+
+    setIsSending(false);
+    const assistantMessage = makeMessage('seller', turn.assistantReply);
+    setMessages((current) => [...current, assistantMessage]);
+    setAcceptedPrice(turn.acceptedPrice || askingPrice);
+
+    if (turn.acceptDeal) {
+      setIsFinalizingDeal(true);
+      const finalMessage = makeMessage(
+        'seller',
+        `Deal accepted at ${turn.acceptedPrice || askingPrice}. Initiating blockchain settlement.`,
+      );
+      const finalHistory = [...nextHistory, assistantMessage, finalMessage];
+      setMessages((current) => [...current, finalMessage]);
+      onCompleteTrade({
+        acceptedPrice: turn.acceptedPrice || askingPrice,
+        counterpartName,
+        negotiationSource: turn.source,
+        transcript: toStoredTranscript(finalHistory),
+      });
     }
-
-    if (lowerCase.includes('lower') || lowerCase.includes('reduce') || lowerCase.includes('discount')) {
-      appendMessage(`I can consider a small discount if you settle immediately and keep the trade on-chain.`, 'seller');
-      return;
-    }
-
-    appendMessage(`Thanks. I’m open to discuss ${marketPrice} or the asking price if you want a fast purchase.`, 'seller');
   };
 
   const handleQuickReply = (reply: string) => {
@@ -98,8 +150,19 @@ export function TradeChatModal({
   };
 
   const handleAcceptAndBuy = () => {
-    appendMessage(`Accepted at ${acceptedPrice}. Initiating blockchain settlement.`, 'seller');
-    onCompleteTrade({ acceptedPrice, counterpartName });
+    if (isFinalizingDeal) {
+      return;
+    }
+    setIsFinalizingDeal(true);
+    const manualAcceptMsg = makeMessage('seller', `Accepted at ${acceptedPrice}. Initiating blockchain settlement.`);
+    const transcriptHistory = [...messages, manualAcceptMsg];
+    setMessages((current) => [...current, manualAcceptMsg]);
+    onCompleteTrade({
+      acceptedPrice,
+      counterpartName,
+      negotiationSource: 'manual',
+      transcript: toStoredTranscript(transcriptHistory),
+    });
   };
 
   return (
@@ -163,16 +226,25 @@ export function TradeChatModal({
                 placeholderTextColor="#94a3b8"
                 style={styles.input}
                 multiline
+                editable={!isSending && !isFinalizingDeal}
               />
-              <Pressable onPress={handleSend} style={styles.sendBtn}>
+              <Pressable
+                onPress={handleSend}
+                style={[styles.sendBtn, (isSending || isFinalizingDeal) && styles.sendBtnDisabled]}
+                disabled={isSending || isFinalizingDeal}
+              >
                 <Send size={16} color="#fff" />
               </Pressable>
             </View>
 
             <View style={styles.footerActions}>
-              <Pressable onPress={handleAcceptAndBuy} style={styles.buyBtn}>
+              <Pressable
+                onPress={handleAcceptAndBuy}
+                style={[styles.buyBtn, isFinalizingDeal && styles.buyBtnDisabled]}
+                disabled={isFinalizingDeal}
+              >
                 <CheckCircle2 size={16} color="#fff" />
-                <ThemedText style={styles.buyTxt}>Lock price and buy</ThemedText>
+                <ThemedText style={styles.buyTxt}>{isFinalizingDeal ? 'Finalizing deal...' : 'Lock price and buy'}</ThemedText>
               </Pressable>
               <Pressable onPress={onClose} style={styles.secondaryBtn}>
                 <ArrowRight size={16} color="#334155" />
@@ -341,6 +413,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  sendBtnDisabled: {
+    backgroundColor: '#94a3b8',
+  },
   footerActions: {
     gap: 10,
     marginBottom: 10,
@@ -357,6 +432,9 @@ const styles = StyleSheet.create({
   buyTxt: {
     color: '#fff',
     fontWeight: '800',
+  },
+  buyBtnDisabled: {
+    backgroundColor: '#94a3b8',
   },
   secondaryBtn: {
     backgroundColor: '#f8fafc',

@@ -37,7 +37,7 @@ export default function NearbyMapNative({ center, markerLabel, nodes, radiusKm, 
         radius={radiusKm * 1000}
         strokeWidth={2}
         strokeColor="rgba(37,99,235,0.8)"
-        fillColor="rgba(37,99,235,0.15)"
+        fillColor="rgba(37,99,235,0)"
       />
 
       <Marker

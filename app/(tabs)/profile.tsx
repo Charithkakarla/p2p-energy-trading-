@@ -3,7 +3,7 @@ import { StyleSheet, ScrollView, View, Pressable, Switch, useWindowDimensions, T
 import { User, Settings, Shield, Bell, HelpCircle, LogOut, ChevronRight, Zap, MapPin, ShieldCheck } from 'lucide-react-native';
 import { ThemedText } from '../../components/ThemedText';
 import { router } from 'expo-router';
-import { useUserStore, updatePreferences, updateProfile } from '../../constants/userStore';
+import { resetUserState, useUserStore, updatePreferences, updateProfile } from '../../constants/userStore';
 
 export default function ProfileScreen() {
   const { width } = useWindowDimensions();
@@ -85,7 +85,13 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      <Pressable style={({ hovered }: any) => [s.logoutBtn, hovered && { backgroundColor: '#fef2f2' }]} onPress={() => router.push('/')}>
+      <Pressable
+        style={({ hovered }: any) => [s.logoutBtn, hovered && { backgroundColor: '#fef2f2' }]}
+        onPress={() => {
+          resetUserState();
+          router.push('/');
+        }}
+      >
         <LogOut size={18} color="#ef4444" />
         <ThemedText style={s.logoutText}>Sign Out from Grid</ThemedText>
       </Pressable>

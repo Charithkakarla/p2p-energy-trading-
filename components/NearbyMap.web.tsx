@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, View, Pressable } from 'react-native';
-import { Map, Overlay } from 'pigeon-maps';
+import { Map, Overlay, GeoJson } from 'pigeon-maps';
 import { MapPin } from 'lucide-react-native';
 import { ThemedText } from './ThemedText';
 
@@ -31,33 +31,75 @@ function satelliteProvider(x: number, y: number, z: number) {
   return `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`;
 }
 
-function getApproxRadiusPixels(radiusKm: number, latitude: number, zoom = 12) {
-  const metersPerPixel =
-    (156543.03392 * Math.cos((latitude * Math.PI) / 180)) / Math.pow(2, zoom);
-  return Math.max(12, Math.min(320, (radiusKm * 1000) / metersPerPixel));
+function toRadians(value: number) {
+  return (value * Math.PI) / 180;
+}
+
+function toDegrees(value: number) {
+  return (value * 180) / Math.PI;
+}
+
+function buildCircleGeoJson(
+  origin: [number, number],
+  radiusKm: number,
+  points = 64
+) {
+  const earthRadiusKm = 6371;
+  const [latDeg, lonDeg] = origin;
+  const lat1 = toRadians(latDeg);
+  const lon1 = toRadians(lonDeg);
+  const angularDistance = radiusKm / earthRadiusKm;
+
+  const ring: [number, number][] = [];
+
+  for (let i = 0; i <= points; i += 1) {
+    const bearing = toRadians((i / points) * 360);
+    const lat2 = Math.asin(
+      Math.sin(lat1) * Math.cos(angularDistance) +
+        Math.cos(lat1) * Math.sin(angularDistance) * Math.cos(bearing)
+    );
+
+    const lon2 =
+      lon1 +
+      Math.atan2(
+        Math.sin(bearing) * Math.sin(angularDistance) * Math.cos(lat1),
+        Math.cos(angularDistance) - Math.sin(lat1) * Math.sin(lat2)
+      );
+
+    // GeoJSON coordinates are [longitude, latitude]
+    ring.push([toDegrees(lon2), toDegrees(lat2)]);
+  }
+
+  return {
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: [ring],
+        },
+        properties: {},
+      },
+    ],
+  };
 }
 
 export default function NearbyMapWeb({ center, markerLabel, nodes, radiusKm, selectedNodeId, userCoords, onSelectNode }: Props) {
   const origin: [number, number] = [userCoords?.latitude || center.latitude, userCoords?.longitude || center.longitude];
-  const radiusPx = getApproxRadiusPixels(radiusKm, origin[0]);
-  const diameterPx = radiusPx * 2;
+  const circleGeoJson = buildCircleGeoJson(origin, radiusKm);
 
   return (
     <View style={s.wrap}>
       <Map defaultCenter={[center.latitude, center.longitude]} defaultZoom={12} provider={satelliteProvider} height={300}>
-        <Overlay anchor={origin} offset={[diameterPx / 2, diameterPx / 2]}>
-          <View
-            pointerEvents="none"
-            style={[
-              s.radiusRing,
-              {
-                width: diameterPx,
-                height: diameterPx,
-                borderRadius: radiusPx,
-              },
-            ]}
-          />
-        </Overlay>
+        <GeoJson
+          data={circleGeoJson}
+          svgAttributes={{
+            fill: 'transparent',
+            stroke: 'rgba(37,99,235,0.85)',
+            strokeWidth: 2,
+          }}
+        />
 
         <Overlay anchor={origin} offset={[12, 12]}>
           <View style={s.userDot}>
@@ -79,11 +121,6 @@ export default function NearbyMapWeb({ center, markerLabel, nodes, radiusKm, sel
 
 const s = StyleSheet.create({
   wrap: { height: 300, borderRadius: 14, overflow: 'hidden' },
-  radiusRing: {
-    borderWidth: 2,
-    borderColor: 'rgba(37,99,235,0.85)',
-    backgroundColor: 'rgba(37,99,235,0.15)',
-  },
   userDot: {
     width: 24,
     height: 24,

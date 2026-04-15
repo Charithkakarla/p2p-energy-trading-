@@ -4,6 +4,12 @@ export type TradeStatus = 'completed' | 'cancelled' | 'pending';
 export type TradeType = 'sold' | 'bought';
 export type UserRole = 'buyer' | 'seller';
 
+export type TradeChatEntry = {
+  sender: 'you' | 'seller';
+  text: string;
+  at: string;
+};
+
 export type TradeItem = {
   id: string;
   date: string;
@@ -15,6 +21,9 @@ export type TradeItem = {
   settlementHash?: string;
   settlementNetwork?: string;
   paymentConfirmedAt?: string;
+  dealLockedAt?: string;
+  negotiationSource?: 'xai' | 'fallback' | 'manual';
+  chatTranscript?: TradeChatEntry[];
 };
 
 export type UserState = {
@@ -132,6 +141,20 @@ const initialState: UserState = {
   ],
 };
 
+function createInitialState(): UserState {
+  return {
+    onboarding: { ...initialState.onboarding },
+    profile: { ...initialState.profile },
+    wallet: { ...initialState.wallet },
+    preferences: { ...initialState.preferences },
+    market: { ...initialState.market },
+    trades: initialState.trades.map((trade) => ({
+      ...trade,
+      chatTranscript: trade.chatTranscript ? trade.chatTranscript.map((entry) => ({ ...entry })) : undefined,
+    })),
+  };
+}
+
 let state: UserState = initialState;
 const listeners = new Set<() => void>();
 
@@ -207,4 +230,9 @@ export function finalizeTradeSettlement(tradeId: string, settlementHash: string,
         : trade
     ),
   }));
+}
+
+export function resetUserState() {
+  state = createInitialState();
+  emit();
 }

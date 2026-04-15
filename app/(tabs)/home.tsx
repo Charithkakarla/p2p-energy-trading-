@@ -4,10 +4,11 @@ import { LogOut, ShoppingBag, Store, ShieldCheck, CheckCircle2, Info, ArrowRight
 import { router } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Location from 'expo-location';
+import * as Linking from 'expo-linking';
 import { ThemedText } from '../../components/ThemedText';
 import NearbyMap from '../../components/NearbyMap';
 import { TradeChatModal } from '../../components/TradeChatModal';
-import { useUserStore, addTrade, updateMarket, updateOnboarding, updateProfile, type UserRole } from '../../constants/userStore';
+import { useUserStore, addTrade, resetUserState, updateMarket, updateOnboarding, updateProfile, type UserRole } from '../../constants/userStore';
 
 type NearbyNode = {
   id: string;
@@ -90,6 +91,23 @@ function getDistanceKm(
   return earthRadiusKm * c;
 }
 
+function recenterNodesAroundAnchor(
+  nodes: NearbyNode[],
+  anchor: { latitude: number; longitude: number }
+) {
+  // Keep each node's relative position pattern, but shift the whole cluster near user location.
+  return nodes.map((node) => ({
+    ...node,
+    latitude: anchor.latitude + (node.latitude - HYDERABAD_CENTER.latitude),
+    longitude: anchor.longitude + (node.longitude - HYDERABAD_CENTER.longitude),
+  }));
+}
+
+function parseEnergyKwh(energyLabel: string) {
+  const numeric = Number.parseFloat(energyLabel.replace(/[^\d.]/g, ''));
+  return Number.isFinite(numeric) ? numeric : 0;
+}
+
 export default function HomeScreen() {
   const { width } = useWindowDimensions();
   const isWide = width > 900;
@@ -119,7 +137,9 @@ export default function HomeScreen() {
       longitude: HYDERABAD_CENTER.longitude,
     };
 
-    return MOCK_NEARBY[selectedRole]
+    const anchoredNodes = recenterNodesAroundAnchor(MOCK_NEARBY[selectedRole], origin);
+
+    return anchoredNodes
       .map((node) => ({
         ...node,
         distanceKm: getDistanceKm(origin, node),
@@ -158,6 +178,31 @@ export default function HomeScreen() {
     }
     return 'Buyer demand is rising near your location. Keep at least 10 kWh listed to improve fills.';
   }, [selectedRole]);
+
+  const analyticsCards = useMemo(() => {
+    const buyerTrades = user.trades.filter((trade) => trade.type === 'bought');
+    const sellerTrades = user.trades.filter((trade) => trade.type === 'sold');
+    const pendingBuyerTrades = buyerTrades.filter((trade) => trade.status === 'pending').length;
+    const pendingSellerTrades = sellerTrades.filter((trade) => trade.status === 'pending').length;
+    const monthlyBought = buyerTrades.reduce((sum, trade) => sum + parseEnergyKwh(trade.energy), 0);
+    const monthlySold = sellerTrades.reduce((sum, trade) => sum + parseEnergyKwh(trade.energy), 0);
+
+    if (selectedRole === 'buyer') {
+      return [
+        { label: 'Wallet Balance', val: `Rs ${user.wallet.balance.toLocaleString('en-IN')}`, icon: <Wallet size={18} color="#22c55e" /> },
+        { label: 'Monthly Spend', val: `Rs ${user.wallet.monthlySpend.toLocaleString('en-IN')}`, icon: <ArrowRightLeft size={18} color="#3b82f6" /> },
+        { label: 'Energy Bought', val: `${monthlyBought.toFixed(1)} kWh`, icon: <TrendingUp size={18} color="#eab308" /> },
+        { label: 'Pending Buys', val: `${pendingBuyerTrades}`, icon: <Users size={18} color="#a855f7" /> },
+      ];
+    }
+
+    return [
+      { label: 'Wallet Balance', val: `Rs ${user.wallet.balance.toLocaleString('en-IN')}`, icon: <Wallet size={18} color="#22c55e" /> },
+      { label: 'Monthly Earnings', val: `Rs ${user.wallet.monthlyEarnings.toLocaleString('en-IN')}`, icon: <TrendingUp size={18} color="#16a34a" /> },
+      { label: 'Energy Sold', val: `${monthlySold.toFixed(1)} kWh`, icon: <ArrowRightLeft size={18} color="#eab308" /> },
+      { label: 'Pending Sales', val: `${pendingSellerTrades}`, icon: <Users size={18} color="#3b82f6" /> },
+    ];
+  }, [selectedRole, user.trades, user.wallet.balance, user.wallet.monthlyEarnings, user.wallet.monthlySpend]);
 
   const notifications = useMemo(
     () => [
@@ -223,6 +268,13 @@ export default function HomeScreen() {
     updateProfile({ verified: true });
   };
 
+  const handleOpenCredentialPortal = async () => {
+    const buyerPortal = 'https://www.npci.org.in/what-we-do/upi-id';
+    const sellerPortal = 'https://mnre.gov.in/solar/schemes/';
+    const targetUrl = selectedRole === 'seller' ? sellerPortal : buyerPortal;
+    await Linking.openURL(targetUrl);
+  };
+
   const handleRequestLocationAndShow = async () => {
     setIsLocating(true);
     const { status } = await Location.requestForegroundPermissionsAsync();
@@ -264,7 +316,13 @@ export default function HomeScreen() {
             <Bell size={18} color="#334155" />
             <View style={s.notificationBadge}><ThemedText style={s.notificationBadgeText}>{notifications.length}</ThemedText></View>
           </Pressable>
-          <Pressable style={({ hovered }: any) => [s.logoutBtn, hovered && { backgroundColor: '#f1f5f9', borderRadius: 8 }]} onPress={() => router.push('/')}>
+          <Pressable
+            style={({ hovered }: any) => [s.logoutBtn, hovered && { backgroundColor: '#f1f5f9', borderRadius: 8 }]}
+            onPress={() => {
+              resetUserState();
+              router.push('/');
+            }}
+          >
             <LogOut size={20} color="#64748b" />
           </Pressable>
         </View>
@@ -395,6 +453,11 @@ export default function HomeScreen() {
                 <View style={{ flex: 1 }}>
                   <ThemedText style={s.helpTitle}>Need a Credential?</ThemedText>
                   <ThemedText style={s.helpText}>Use files in assets/mock-credentials for quick testing: buyer-vc.json and seller-vc.json.</ThemedText>
+                  <Pressable style={({ hovered }: any) => [s.portalBtn, hovered && { backgroundColor: '#dbeafe' }]} onPress={handleOpenCredentialPortal}>
+                    <ThemedText style={s.portalBtnText}>
+                      {selectedRole === 'seller' ? 'Open MNRE seller credential portal' : 'Open UPI identity credential portal'}
+                    </ThemedText>
+                  </Pressable>
                 </View>
               </View>
             </View>
@@ -409,11 +472,7 @@ export default function HomeScreen() {
               </View>
 
               <View style={[s.statGrid, !isWide && { flexDirection: 'column' }]}> 
-                {[
-                  { label: 'Available Balance', val: `Rs ${user.wallet.balance.toLocaleString('en-IN')}`, icon: <Wallet size={18} color="#22c55e" /> },
-                  { label: 'Pending Trades', val: `${user.trades.filter((t) => t.status === 'pending').length}`, icon: <ArrowRightLeft size={18} color="#3b82f6" /> },
-                  { label: 'Live Price/kWh', val: `Rs ${user.market.livePricePerKwh.toFixed(2)}`, icon: <TrendingUp size={18} color="#eab308" /> },
-                ].map((item, i) => (
+                {analyticsCards.map((item, i) => (
                   <View key={i} style={s.statCard}>
                     <View style={s.statIcon}>{item.icon}</View>
                     <View>
@@ -549,7 +608,7 @@ export default function HomeScreen() {
           energyAmount={activeChatNode.units}
           marketPrice={marketReference}
           onClose={() => setActiveChatNode(null)}
-          onCompleteTrade={({ acceptedPrice, counterpartName }) => {
+          onCompleteTrade={({ acceptedPrice, counterpartName, negotiationSource, transcript }) => {
             const tradeType = selectedRole === 'buyer' ? 'bought' : 'sold';
             addTrade({
               id: `tx-${Date.now()}`,
@@ -559,6 +618,15 @@ export default function HomeScreen() {
               price: acceptedPrice,
               type: tradeType,
               counterpart: counterpartName,
+              dealLockedAt: new Date().toLocaleString('en-US', {
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              }),
+              negotiationSource,
+              chatTranscript: transcript,
             });
             setTradeNotice(`Locked ${acceptedPrice} with ${counterpartName}. Settlement can now be recorded on-chain.`);
             setActiveChatNode(null);
@@ -640,6 +708,8 @@ const s: any = StyleSheet.create({
   helpCard: { flexDirection: 'row', gap: 10, backgroundColor: '#eff6ff', borderColor: '#bfdbfe', borderWidth: 1, borderRadius: 12, padding: 12 },
   helpTitle: { fontWeight: '800', color: '#1e3a8a', marginBottom: 2 },
   helpText: { fontSize: 12, color: '#334155' },
+  portalBtn: { marginTop: 10, alignSelf: 'flex-start', backgroundColor: '#e0e7ff', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7 },
+  portalBtnText: { color: '#1e40af', fontWeight: '800', fontSize: 12 },
 
   verifiedHeader: { alignItems: 'center', marginBottom: 24, marginTop: 12 },
   verifiedIcon: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#f0fdf4', justifyContent: 'center', alignItems: 'center', marginBottom: 16 },

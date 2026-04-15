@@ -125,22 +125,17 @@ export default function TradesScreen() {
                   <ThemedText style={s.counterName}>{trade.counterpart}</ThemedText>
                 </View>
                 <Pressable
-                  disabled={trade.status !== 'completed'}
+                  disabled={false}
                   onPress={() => {
-                    if (trade.status === 'completed') {
-                      setDetailTrade(trade);
-                    }
+                    setDetailTrade(trade);
                   }}
                   style={({ hovered }: any) => [
                     s.detailsBtn,
-                    hovered && trade.status === 'completed' && { backgroundColor: '#f1f5f9' },
-                    trade.status !== 'completed' && s.detailsBtnDisabled,
+                    hovered && { backgroundColor: '#f1f5f9' },
                   ]}
                 > 
                   <FileText size={14} color="#22c55e" />
-                  <ThemedText style={[s.btnText, trade.status !== 'completed' && s.btnTextDisabled]}>
-                    {trade.status === 'completed' ? 'View details' : 'Awaiting settlement'}
-                  </ThemedText>
+                  <ThemedText style={s.btnText}>View details</ThemedText>
                 </Pressable>
               </View>
             </Pressable>
@@ -164,7 +159,7 @@ export default function TradesScreen() {
             <View style={s.detailHeader}>
               <View>
                 <ThemedText style={s.detailTitle}>Trade details</ThemedText>
-                <ThemedText style={s.detailSub}>Basic settlement record for this completed trade.</ThemedText>
+                <ThemedText style={s.detailSub}>Settlement proof and negotiation transcript for trust and audit.</ThemedText>
               </View>
               <Pressable onPress={() => setDetailTrade(null)} style={s.detailCloseBtn}>
                 <ThemedText style={s.detailCloseTxt}>Close</ThemedText>
@@ -179,11 +174,34 @@ export default function TradesScreen() {
                 <DetailRow label="Energy" value={detailTrade.energy} />
                 <DetailRow label="Price" value={detailTrade.price} />
                 <DetailRow label="Counterparty" value={detailTrade.counterpart} />
+                <DetailRow label="Deal locked at" value={detailTrade.dealLockedAt || 'Not available'} />
+                <DetailRow label="Negotiation source" value={detailTrade.negotiationSource || 'Not available'} />
                 <DetailRow label="Network" value={detailTrade.settlementNetwork || 'Not available'} />
                 <DetailRow label="Settlement hash" value={detailTrade.settlementHash || 'Not available'} />
                 <DetailRow label="Confirmed at" value={detailTrade.paymentConfirmedAt || 'Not available'} />
                 <View style={s.detailSeparator} />
-                <ThemedText style={s.detailNote}>Payment and settlement marked complete in app ledger.</ThemedText>
+                <ThemedText style={s.detailSectionTitle}>Negotiation transcript</ThemedText>
+                {detailTrade.chatTranscript && detailTrade.chatTranscript.length > 0 ? (
+                  <View style={s.transcriptWrap}>
+                    {detailTrade.chatTranscript.map((entry, index) => (
+                      <View
+                        key={`${detailTrade.id}-msg-${index}`}
+                        style={[s.transcriptRow, entry.sender === 'you' ? s.transcriptYou : s.transcriptCounterparty]}
+                      >
+                        <ThemedText style={s.transcriptSender}>{entry.sender === 'you' ? 'You' : 'Counterparty'}</ThemedText>
+                        <ThemedText style={s.transcriptText}>{entry.text}</ThemedText>
+                        <ThemedText style={s.transcriptTime}>{entry.at}</ThemedText>
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <ThemedText style={s.detailNote}>No transcript saved for this trade.</ThemedText>
+                )}
+
+                <View style={s.detailSeparator} />
+                <ThemedText style={s.detailNote}>
+                  Proof checklist: negotiation record, trade amount, counterpart, settlement network, transaction hash, and confirmation timestamp.
+                </ThemedText>
               </View>
             )}
           </View>
@@ -286,5 +304,13 @@ const s = StyleSheet.create({
   detailLabel: { color: '#64748b', fontSize: 12, fontWeight: '700' },
   detailValue: { color: '#0f172a', fontSize: 13, fontWeight: '800' },
   detailSeparator: { height: 1, backgroundColor: '#e2e8f0', marginTop: 8, marginBottom: 8 },
+  detailSectionTitle: { color: '#0f172a', fontSize: 13, fontWeight: '900', marginBottom: 8 },
+  transcriptWrap: { gap: 8 },
+  transcriptRow: { borderRadius: 12, padding: 10, borderWidth: 1 },
+  transcriptYou: { backgroundColor: '#eff6ff', borderColor: '#bfdbfe' },
+  transcriptCounterparty: { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' },
+  transcriptSender: { fontSize: 11, fontWeight: '800', color: '#334155', marginBottom: 4 },
+  transcriptText: { fontSize: 12, color: '#0f172a', lineHeight: 18 },
+  transcriptTime: { marginTop: 6, fontSize: 10, color: '#64748b' },
   detailNote: { color: '#334155', fontSize: 12, lineHeight: 18 },
 });
