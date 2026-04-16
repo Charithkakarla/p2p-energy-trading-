@@ -16,11 +16,13 @@ function SidebarTabBar({
   activeColor,
   inactiveColor,
   collapsed,
+  role,
   onToggle,
 }: BottomTabBarProps & {
   activeColor: string;
   inactiveColor: string;
   collapsed: boolean;
+  role: 'buyer' | 'seller' | null;
   onToggle: () => void;
 }) {
   const sidebarWidth = collapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH;
@@ -44,6 +46,14 @@ function SidebarTabBar({
         {state.routes.map((route, index) => {
           const descriptor = descriptors[route.key];
           const options = descriptor.options;
+
+          if (route.name === 'buy' && role !== 'buyer') {
+            return null;
+          }
+
+          if (route.name === 'sell' && role !== 'seller') {
+            return null;
+          }
 
           if (options.href === null) {
             return null;
@@ -109,19 +119,20 @@ export default function TabLayout() {
     ? (sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH)
     : 0;
 
+  const desktopTabBar = (props: BottomTabBarProps) => (
+    <SidebarTabBar
+      {...props}
+      activeColor={activeColor}
+      inactiveColor={inactiveColor}
+      collapsed={sidebarCollapsed}
+      role={role}
+      onToggle={() => setSidebarCollapsed((value) => !value)}
+    />
+  );
+
   return (
     <Tabs
-      tabBar={(props) =>
-        isDesktop ? (
-          <SidebarTabBar
-            {...props}
-            activeColor={activeColor}
-            inactiveColor={inactiveColor}
-            collapsed={sidebarCollapsed}
-            onToggle={() => setSidebarCollapsed((value) => !value)}
-          />
-        ) : undefined
-      }
+      {...(isDesktop ? { tabBar: desktopTabBar } : {})}
       screenOptions={{
         headerShown: false,
         sceneStyle: {

@@ -6,12 +6,12 @@ import { requestNegotiationTurn } from '../services/grokNegotiation';
 
 type ChatMessage = {
   id: string;
-  sender: 'you' | 'seller';
+  sender: 'you' | 'counterparty';
   text: string;
 };
 
 type StoredChatEntry = {
-  sender: 'you' | 'seller';
+  sender: 'you' | 'counterparty';
   text: string;
   at: string;
 };
@@ -89,18 +89,14 @@ export function TradeChatModal({
     }
 
     setMessages([
-      makeMessage('seller', `Hi, I’m ${counterpartName}. The current asking price is ${askingPrice}.`),
-      makeMessage('seller', `We have ${energyAmount} available and can settle after we agree on the rate.`),
+      makeMessage('counterparty', `Hi, I’m ${counterpartName}. The current asking price is ${askingPrice}.`),
+      makeMessage('counterparty', `We have ${energyAmount} available and can settle after we agree on the rate.`),
     ]);
     setDraft('');
     setAcceptedPrice(askingPrice);
     setIsSending(false);
     setIsFinalizingDeal(false);
   }, [askingPrice, counterpartName, energyAmount, visible]);
-
-  const appendMessage = (text: string, sender: ChatMessage['sender']) => {
-    setMessages((current) => [...current, makeMessage(sender, text)]);
-  };
 
   const handleSend = async () => {
     const nextText = draft.trim();
@@ -124,14 +120,14 @@ export function TradeChatModal({
     });
 
     setIsSending(false);
-    const assistantMessage = makeMessage('seller', turn.assistantReply);
+    const assistantMessage = makeMessage('counterparty', turn.assistantReply);
     setMessages((current) => [...current, assistantMessage]);
     setAcceptedPrice(turn.acceptedPrice || askingPrice);
 
     if (turn.acceptDeal) {
       setIsFinalizingDeal(true);
       const finalMessage = makeMessage(
-        'seller',
+        'counterparty',
         `Deal accepted at ${turn.acceptedPrice || askingPrice}. Initiating blockchain settlement.`,
       );
       const finalHistory = [...nextHistory, assistantMessage, finalMessage];
@@ -154,7 +150,7 @@ export function TradeChatModal({
       return;
     }
     setIsFinalizingDeal(true);
-    const manualAcceptMsg = makeMessage('seller', `Accepted at ${acceptedPrice}. Initiating blockchain settlement.`);
+    const manualAcceptMsg = makeMessage('counterparty', `Accepted at ${acceptedPrice}. Initiating blockchain settlement.`);
     const transcriptHistory = [...messages, manualAcceptMsg];
     setMessages((current) => [...current, manualAcceptMsg]);
     onCompleteTrade({

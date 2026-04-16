@@ -7,10 +7,16 @@ import { TradeChatModal } from '../../components/TradeChatModal';
 import { addTrade, useUserStore } from '../../constants/userStore';
 
 const MOCK_LISTINGS = [
-  { id: '1', seller: 'Home Solar A', energy: '45 kWh', price: '₹ 5.2/kWh', distance: '1.2 km', rating: '4.8', trustScore: 95, fulfillmentRate: '98%', disputeCount: 0, responseTime: '< 3 min' },
-  { id: '2', seller: 'Green Office', energy: '120 kWh', price: '₹ 4.8/kWh', distance: '3.5 km', rating: '4.9', trustScore: 93, fulfillmentRate: '96%', disputeCount: 1, responseTime: '< 5 min' },
-  { id: '3', seller: 'Rooftop Pro', energy: '22 kWh', price: '₹ 5.5/kWh', distance: '0.8 km', rating: '4.7', trustScore: 89, fulfillmentRate: '94%', disputeCount: 2, responseTime: '< 7 min' },
-  { id: '4', seller: 'Eco Tower', energy: '200 kWh', price: '₹ 4.5/kWh', distance: '5.2 km', rating: '5.0', trustScore: 97, fulfillmentRate: '99%', disputeCount: 0, responseTime: '< 2 min' },
+  { id: 'S1', seller: 'Ravi Solar Hub', energy: '12 kWh', price: 'Rs 4.30/kWh', distance: '1.2 km', rating: '4.8', trustScore: 96, fulfillmentRate: '98%', disputeCount: 0, responseTime: '< 3 min' },
+  { id: 'S2', seller: 'Meera Energy', energy: '18 kWh', price: 'Rs 4.10/kWh', distance: '1.8 km', rating: '4.7', trustScore: 92, fulfillmentRate: '95%', disputeCount: 1, responseTime: '< 5 min' },
+  { id: 'S3', seller: 'Green Terrace Pvt', energy: '25 kWh', price: 'Rs 4.45/kWh', distance: '2.1 km', rating: '4.6', trustScore: 88, fulfillmentRate: '93%', disputeCount: 2, responseTime: '< 7 min' },
+  { id: 'S4', seller: 'SunPeak Co-op', energy: '20 kWh', price: 'Rs 4.22/kWh', distance: '1.5 km', rating: '4.8', trustScore: 91, fulfillmentRate: '96%', disputeCount: 1, responseTime: '< 4 min' },
+  { id: 'S5', seller: 'EcoVolt Homes', energy: '16 kWh', price: 'Rs 4.18/kWh', distance: '2.4 km', rating: '4.6', trustScore: 89, fulfillmentRate: '94%', disputeCount: 2, responseTime: '< 6 min' },
+  { id: 'S6', seller: 'Harsha Rooftop', energy: '9 kWh', price: 'Rs 4.35/kWh', distance: '1.0 km', rating: '4.8', trustScore: 94, fulfillmentRate: '97%', disputeCount: 0, responseTime: '< 3 min' },
+  { id: 'S7', seller: 'GridLeaf Solar', energy: '30 kWh', price: 'Rs 4.08/kWh', distance: '2.9 km', rating: '4.5', trustScore: 87, fulfillmentRate: '92%', disputeCount: 2, responseTime: '< 8 min' },
+  { id: 'S8', seller: 'Nexa Green Blocks', energy: '14 kWh', price: 'Rs 4.27/kWh', distance: '2.6 km', rating: '4.7', trustScore: 90, fulfillmentRate: '95%', disputeCount: 1, responseTime: '< 5 min' },
+  { id: 'S9', seller: 'Aarav Energy Deck', energy: '11 kWh', price: 'Rs 4.14/kWh', distance: '3.1 km', rating: '4.4', trustScore: 85, fulfillmentRate: '90%', disputeCount: 3, responseTime: '< 9 min' },
+  { id: 'S10', seller: 'BlueRay Microgrid', energy: '22 kWh', price: 'Rs 4.41/kWh', distance: '2.2 km', rating: '4.8', trustScore: 93, fulfillmentRate: '96%', disputeCount: 1, responseTime: '< 4 min' },
 ];
 
 export default function BuyScreen() {
@@ -110,7 +116,7 @@ export default function BuyScreen() {
           energyAmount={activeListing.energy}
           marketPrice={marketReference}
           onClose={() => setActiveListing(null)}
-          onCompleteTrade={({ acceptedPrice, counterpartName }) => {
+          onCompleteTrade={({ acceptedPrice, counterpartName, negotiationSource, transcript }) => {
             addTrade({
               id: `tx-${Date.now()}`,
               date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
@@ -119,6 +125,15 @@ export default function BuyScreen() {
               price: acceptedPrice,
               type: 'bought',
               counterpart: counterpartName,
+              dealLockedAt: new Date().toLocaleString('en-US', {
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              }),
+              negotiationSource,
+              chatTranscript: transcript,
             });
             setTradeNotice(`Locked ${acceptedPrice} with ${counterpartName}. You can finalize the blockchain settlement now.`);
             setActiveListing(null);

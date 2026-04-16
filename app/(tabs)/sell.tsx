@@ -7,10 +7,16 @@ import { TradeChatModal } from '../../components/TradeChatModal';
 import { addTrade, useUserStore } from '../../constants/userStore';
 
 const BUYER_DEMAND = [
-  { id: '1', buyer: 'Tech Park Block A', energy: '32 kWh', price: 'Rs 4.7/kWh', distance: '1.6 km', rating: '4.8', trustScore: 95, fulfillmentRate: '98%', disputeCount: 0, responseTime: '< 3 min' },
-  { id: '2', buyer: 'Riverfront Residency', energy: '18 kWh', price: 'Rs 4.5/kWh', distance: '2.3 km', rating: '4.7', trustScore: 92, fulfillmentRate: '95%', disputeCount: 1, responseTime: '< 5 min' },
-  { id: '3', buyer: 'Metro Towers', energy: '52 kWh', price: 'Rs 4.8/kWh', distance: '4.1 km', rating: '4.9', trustScore: 97, fulfillmentRate: '99%', disputeCount: 0, responseTime: '< 2 min' },
-  { id: '4', buyer: 'Green County Homes', energy: '14 kWh', price: 'Rs 4.4/kWh', distance: '0.9 km', rating: '4.6', trustScore: 89, fulfillmentRate: '93%', disputeCount: 2, responseTime: '< 7 min' },
+  { id: 'B1', buyer: 'Anita Residency', energy: '10 kWh', price: 'Buying Rs 4.25/kWh', distance: '1.3 km', rating: '4.8', trustScore: 94, fulfillmentRate: '97%', disputeCount: 0, responseTime: '< 4 min' },
+  { id: 'B2', buyer: 'Cyber Heights', energy: '30 kWh', price: 'Buying Rs 4.35/kWh', distance: '1.9 km', rating: '4.7', trustScore: 90, fulfillmentRate: '94%', disputeCount: 1, responseTime: '< 5 min' },
+  { id: 'B3', buyer: 'Lakeview Towers', energy: '22 kWh', price: 'Buying Rs 4.20/kWh', distance: '2.4 km', rating: '4.5', trustScore: 86, fulfillmentRate: '91%', disputeCount: 2, responseTime: '< 8 min' },
+  { id: 'B4', buyer: 'Madhapur Residences', energy: '18 kWh', price: 'Buying Rs 4.40/kWh', distance: '2.2 km', rating: '4.8', trustScore: 92, fulfillmentRate: '96%', disputeCount: 1, responseTime: '< 4 min' },
+  { id: 'B5', buyer: 'Nimbus Tech Park', energy: '26 kWh', price: 'Buying Rs 4.31/kWh', distance: '2.8 km', rating: '4.7', trustScore: 91, fulfillmentRate: '95%', disputeCount: 1, responseTime: '< 6 min' },
+  { id: 'B6', buyer: 'Asha Gardens', energy: '12 kWh', price: 'Buying Rs 4.16/kWh', distance: '1.4 km', rating: '4.6', trustScore: 88, fulfillmentRate: '93%', disputeCount: 2, responseTime: '< 7 min' },
+  { id: 'B7', buyer: 'Orbit Crest', energy: '15 kWh', price: 'Buying Rs 4.28/kWh', distance: '3.0 km', rating: '4.6', trustScore: 89, fulfillmentRate: '94%', disputeCount: 2, responseTime: '< 5 min' },
+  { id: 'B8', buyer: 'Eterna Enclave', energy: '24 kWh', price: 'Buying Rs 4.34/kWh', distance: '2.6 km', rating: '4.9', trustScore: 95, fulfillmentRate: '98%', disputeCount: 0, responseTime: '< 3 min' },
+  { id: 'B9', buyer: 'Trident Blocks', energy: '9 kWh', price: 'Buying Rs 4.12/kWh', distance: '3.2 km', rating: '4.3', trustScore: 84, fulfillmentRate: '90%', disputeCount: 3, responseTime: '< 9 min' },
+  { id: 'B10', buyer: 'Skyline Meadows', energy: '28 kWh', price: 'Buying Rs 4.22/kWh', distance: '2.5 km', rating: '4.8', trustScore: 93, fulfillmentRate: '97%', disputeCount: 0, responseTime: '< 4 min' },
 ];
 
 export default function SellScreen() {
@@ -110,7 +116,7 @@ export default function SellScreen() {
           energyAmount={activeDemand.energy}
           marketPrice={marketReference}
           onClose={() => setActiveDemand(null)}
-          onCompleteTrade={({ acceptedPrice, counterpartName }) => {
+          onCompleteTrade={({ acceptedPrice, counterpartName, negotiationSource, transcript }) => {
             addTrade({
               id: `tx-${Date.now()}`,
               date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
@@ -119,6 +125,15 @@ export default function SellScreen() {
               price: acceptedPrice,
               type: 'sold',
               counterpart: counterpartName,
+              dealLockedAt: new Date().toLocaleString('en-US', {
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              }),
+              negotiationSource,
+              chatTranscript: transcript,
             });
             setTradeNotice(`Locked ${acceptedPrice} with ${counterpartName}. Settlement can now be recorded on-chain.`);
             setActiveDemand(null);

@@ -1,5 +1,5 @@
 type NegotiationMessage = {
-  sender: 'you' | 'seller';
+  sender: 'you' | 'counterparty';
   text: string;
 };
 
@@ -128,6 +128,9 @@ export async function requestNegotiationTurn(
   };
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
     const response = await fetch('https://api.x.ai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -135,7 +138,10 @@ export async function requestNegotiationTurn(
         Authorization: `Bearer ${key}`,
       },
       body: JSON.stringify(body),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       return fallbackNegotiation(req);

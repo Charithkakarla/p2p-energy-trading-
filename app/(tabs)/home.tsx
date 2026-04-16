@@ -95,11 +95,13 @@ function recenterNodesAroundAnchor(
   nodes: NearbyNode[],
   anchor: { latitude: number; longitude: number }
 ) {
+  const NODE_CLUSTER_SCALE = 0.45;
+
   // Keep each node's relative position pattern, but shift the whole cluster near user location.
   return nodes.map((node) => ({
     ...node,
-    latitude: anchor.latitude + (node.latitude - HYDERABAD_CENTER.latitude),
-    longitude: anchor.longitude + (node.longitude - HYDERABAD_CENTER.longitude),
+    latitude: anchor.latitude + (node.latitude - HYDERABAD_CENTER.latitude) * NODE_CLUSTER_SCALE,
+    longitude: anchor.longitude + (node.longitude - HYDERABAD_CENTER.longitude) * NODE_CLUSTER_SCALE,
   }));
 }
 
@@ -123,7 +125,7 @@ export default function HomeScreen() {
   const [activeChatNode, setActiveChatNode] = useState<NearbyNode | null>(null);
   const [tradeNotice, setTradeNotice] = useState<string | null>(null);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [radiusKm, setRadiusKm] = useState(8);
+  const [radiusKm, setRadiusKm] = useState(4.5);
 
   const selectedRole = user.onboarding.selectedRole;
   const isVerified = user.profile.verified;
@@ -302,6 +304,47 @@ export default function HomeScreen() {
     }
 
     setActiveChatNode(selectedNode);
+  };
+
+  const lockCurrentPriceAndGoToTrades = () => {
+    if (!selectedNode || !selectedRole) {
+      return;
+    }
+
+    const tradeType = selectedRole === 'buyer' ? 'bought' : 'sold';
+
+    addTrade({
+      id: `tx-${Date.now()}`,
+      date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+      status: 'pending',
+      energy: selectedNode.units,
+      price: selectedNode.price,
+      type: tradeType,
+      counterpart: selectedNode.name,
+      dealLockedAt: new Date().toLocaleString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+      negotiationSource: 'manual',
+      chatTranscript: [
+        {
+          sender: 'counterparty',
+          text: `Rate locked at ${selectedNode.price} for ${selectedNode.units}.`,
+          at: new Date().toLocaleString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+        },
+      ],
+    });
+
+    setTradeNotice(`Locked ${selectedNode.price} with ${selectedNode.name}. Redirecting to Trades.`);
+    router.push('/(tabs)/trades');
   };
 
   return (
@@ -537,7 +580,7 @@ export default function HomeScreen() {
                         <ThemedText style={s.radiusValue}>{radiusKm.toFixed(1)} km</ThemedText>
                       </View>
                       <ThemedText style={s.radiusSub}>Drag left or right to control how far users are shown on the map.</ThemedText>
-                      <RadiusSlider min={1} max={8} step={0.1} value={radiusKm} onChange={setRadiusKm} />
+                      <RadiusSlider min={1} max={4.9} step={0.1} value={radiusKm} onChange={setRadiusKm} />
                     </View>
 
                     <NearbyMap
@@ -582,8 +625,8 @@ export default function HomeScreen() {
                           <View style={s.nodeTrustBadge}><ThemedText style={s.nodeTrustBadgeText}>{selectedNode.disputeCount} disputes</ThemedText></View>
                         </View>
                         <View style={s.nodeActionRow}>
-                          <Pressable style={({ hovered }: any) => [s.chatBtn, hovered && { backgroundColor: '#111827' }]} onPress={openChatForSelectedNode}>
-                            <ThemedText style={s.chatBtnText}>Chat with him</ThemedText>
+                          <Pressable style={({ hovered }: any) => [s.chatBtn, hovered && { backgroundColor: '#111827' }]} onPress={lockCurrentPriceAndGoToTrades}>
+                            <ThemedText style={s.chatBtnText}>Lock and Confirm</ThemedText>
                           </Pressable>
                           <Pressable style={({ hovered }: any) => [s.secondaryChatBtn, hovered && { backgroundColor: '#eef2ff' }]} onPress={openChatForSelectedNode}>
                             <ThemedText style={s.secondaryChatText}>Negotiate rate</ThemedText>

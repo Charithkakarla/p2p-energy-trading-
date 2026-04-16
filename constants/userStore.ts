@@ -5,7 +5,7 @@ export type TradeType = 'sold' | 'bought';
 export type UserRole = 'buyer' | 'seller';
 
 export type TradeChatEntry = {
-  sender: 'you' | 'seller';
+  sender: 'you' | 'counterparty';
   text: string;
   at: string;
 };
