@@ -8,7 +8,7 @@ import {
   Zap, Menu, X,
   UserCheck, ListPlus, CheckCircle2, BadgeDollarSign,
   Search, FilePen, ReceiptText,
-  ArrowRight, Leaf, ShieldCheck, ChevronRight, Play,
+  ArrowRight, Leaf, ShieldCheck, ChevronRight, ChevronLeft, Play,
   TrendingUp, Sun, Battery, Mail, Phone, Smartphone,
   Linkedin, Twitter, Instagram, Facebook, MessageCircle
 } from 'lucide-react-native';
@@ -204,6 +204,7 @@ export default function LandingPage() {
   const [payFlow, setPayFlow]         = useState<'buyer' | 'seller'>('buyer');
   const [payStep, setPayStep]         = useState(0);
   const [showAuth, setShowAuth]       = useState(false);
+  const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState(false);
 
   const scrollRef = useRef<ScrollView>(null);
 
@@ -247,25 +248,21 @@ export default function LandingPage() {
           </Pressable>
 
           {isWide ? (
-            <View style={s.navLinks}>
-              {NAV_LINKS.map(lnk => (
-                <Pressable key={lnk} onPress={() => navigateTo(lnk as Section)}>
-                  {({ hovered }: { hovered: boolean }) => (
-                    <ThemedText style={[s.navLink, section === lnk && s.navLinkActive, hovered && { color: T.green, transform: [{ translateY: -1 }] }]}>{lnk}</ThemedText>
-                  )}
-                </Pressable>
-              ))}
-            </View>
-          ) : null}
-
-          {isWide ? (
-            <View style={s.navCtas}>
+            <View style={s.navRightActions}>
+              <Pressable
+                style={({ hovered }: any) => [s.sidebarToggle, hovered && { backgroundColor: T.greenLight }]}
+                onPress={() => setDesktopSidebarCollapsed((value) => !value)}
+              >
+                {desktopSidebarCollapsed ? <ChevronRight size={18} color={T.textH} /> : <ChevronLeft size={18} color={T.textH} />}
+              </Pressable>
+              <View style={s.navCtas}>
               <Pressable style={({hovered}: any) => [s.navBtnOutline, hovered && { backgroundColor: T.greenLight, transform: [{ scale: 1.02 }] }]} onPress={() => setShowAuth(true)}>
                 <ThemedText style={s.navBtnOutlineTxt}>Buy Energy</ThemedText>
               </Pressable>
               <Pressable style={({hovered}: any) => [s.navBtnSolid, hovered && { backgroundColor: T.greenDark, transform: [{ scale: 1.02 }] }]} onPress={() => setShowAuth(true)}>
                 <ThemedText style={s.navBtnSolidTxt}>Sell Energy</ThemedText>
               </Pressable>
+              </View>
             </View>
           ) : (
             <Pressable style={({hovered}: any) => [s.burger, hovered && { opacity: 0.7 }]} onPress={() => setDrawerOpen(true)}>
@@ -273,6 +270,21 @@ export default function LandingPage() {
             </Pressable>
           )}
         </View>
+
+        {isWide && (
+          <View style={[s.desktopSidebar, desktopSidebarCollapsed && s.desktopSidebarCollapsed]}>
+            <View style={s.desktopSidebarLinks}>
+              {NAV_LINKS.map((lnk) => (
+                <Pressable key={lnk} onPress={() => navigateTo(lnk as Section)} style={({ hovered }: any) => [s.desktopSidebarLink, section === lnk && s.desktopSidebarLinkActive, hovered && section !== lnk && { backgroundColor: '#f8fafc' }]}>
+                  <View style={[s.desktopSidebarDot, section === lnk && s.desktopSidebarDotActive]} />
+                  {!desktopSidebarCollapsed ? <ThemedText style={[s.desktopSidebarText, section === lnk && s.desktopSidebarTextActive]}>{lnk}</ThemedText> : null}
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        )}
+
+        <View style={[isWide && (desktopSidebarCollapsed ? s.withDesktopSidebarCollapsed : s.withDesktopSidebar)]}>
 
         {/* ══ HOME ════════════════════════════════════════════════════════════ */}
         {section === 'Home' && (
@@ -347,7 +359,7 @@ export default function LandingPage() {
                     onPress={() => setActiveFlow(f)}
                   >
                     <ThemedText style={[s.flowTabTxt, activeFlow === f && s.flowTabTxtActive]}>
-                      {f === 'buyer' ? '🛒 Buyer Flow' : '☀️ Seller Flow'}
+                      {f === 'buyer' ? 'Buyer Workflow' : 'Seller Workflow'}
                     </ThemedText>
                     {isWide && (
                       <ThemedText style={[s.flowTabSub, activeFlow === f && { color: T.white }]}>
@@ -460,7 +472,7 @@ export default function LandingPage() {
               <View style={[s.flowToggle, !isWide && { alignSelf: 'stretch' }]}>
                 {(['buyer', 'seller'] as const).map(f => (
                   <TouchableOpacity key={f} style={[s.flowTab, activeFlow === f && s.flowTabActive, !isWide && { flex: 1 }]} onPress={() => setActiveFlow(f)}>
-                    <ThemedText style={[s.flowTabTxt, activeFlow === f && s.flowTabTxtActive]}>{f === 'buyer' ? '🛒 Buyer Flow' : '☀️ Seller Flow'}</ThemedText>
+                    <ThemedText style={[s.flowTabTxt, activeFlow === f && s.flowTabTxtActive]}>{f === 'buyer' ? 'Buyer Workflow' : 'Seller Workflow'}</ThemedText>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -572,7 +584,7 @@ export default function LandingPage() {
                 <View style={[s.payToggle, !isWide && { alignSelf: 'stretch' }]}>
                   {(['buyer', 'seller'] as const).map(f => (
                     <Pressable key={f} style={({hovered}: any) => [s.payToggleTab, payFlow === f && s.payToggleTabActive, !isWide && { flex: 1 }, hovered && payFlow !== f && { backgroundColor: 'rgba(0,0,0,0.02)' }]} onPress={() => { setPayFlow(f); setPayStep(0); }}>
-                      <ThemedText style={[s.payToggleTxt, payFlow === f && s.payToggleTxtActive]}>{f === 'buyer' ? '🛒 Buyer Flow' : '☀️ Seller Flow'}</ThemedText>
+                      <ThemedText style={[s.payToggleTxt, payFlow === f && s.payToggleTxtActive]}>{f === 'buyer' ? 'Buyer Workflow' : 'Seller Workflow'}</ThemedText>
                       <ThemedText style={s.payToggleSub}>{f === 'buyer' ? 'How to purchase energy' : 'How to sell your solar'}</ThemedText>
                     </Pressable>
                   ))}
@@ -712,6 +724,8 @@ export default function LandingPage() {
           </View>
         </View>
 
+        </View>
+
       </ScrollView>
     </>
   );
@@ -748,15 +762,27 @@ const s = StyleSheet.create({
   navbar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 28, paddingVertical: 16, backgroundColor: T.white, borderBottomWidth: 1, borderBottomColor: T.border, ...shadow },
   logoRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   logoText: { fontSize: 20, fontWeight: '900', letterSpacing: -0.5, color: T.textH },
-  navLinks: { flexDirection: 'row', alignItems: 'center', gap: 28 },
-  navLink: { fontSize: 14, color: T.textB, fontWeight: '500' },
-  navLinkActive: { color: T.green, fontWeight: '700' },
+  navRightActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  sidebarToggle: { width: 38, height: 38, borderRadius: 10, borderWidth: 1, borderColor: T.border, backgroundColor: T.bg, alignItems: 'center', justifyContent: 'center' },
   navCtas: { flexDirection: 'row', gap: 10 },
   navBtnOutline: { paddingHorizontal: 18, paddingVertical: 9, borderRadius: 22, borderWidth: 1.5, borderColor: T.green },
   navBtnOutlineTxt: { fontSize: 13, fontWeight: '700', color: T.green },
   navBtnSolid: { paddingHorizontal: 18, paddingVertical: 9, borderRadius: 22, backgroundColor: T.green },
   navBtnSolidTxt: { fontSize: 13, fontWeight: '700', color: T.white },
   burger: { width: 40, height: 40, borderRadius: 10, backgroundColor: T.bg, borderWidth: 1, borderColor: T.border, justifyContent: 'center', alignItems: 'center' },
+
+  // ── Desktop sidebar
+  desktopSidebar: { position: 'absolute', top: 73, left: 0, bottom: 0, width: 240, backgroundColor: T.white, borderRightWidth: 1, borderRightColor: T.border, padding: 14, zIndex: 20 },
+  desktopSidebarCollapsed: { width: 68 },
+  desktopSidebarLinks: { gap: 6 },
+  desktopSidebarLink: { height: 42, borderRadius: 10, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  desktopSidebarLinkActive: { backgroundColor: T.greenBg },
+  desktopSidebarDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#94a3b8' },
+  desktopSidebarDotActive: { backgroundColor: T.green },
+  desktopSidebarText: { fontSize: 14, color: T.textB, fontWeight: '600' },
+  desktopSidebarTextActive: { color: T.greenDark, fontWeight: '800' },
+  withDesktopSidebar: { paddingLeft: 240 },
+  withDesktopSidebarCollapsed: { paddingLeft: 68 },
 
   // ── Hero
   hero: { backgroundColor: T.white, paddingTop: 72, paddingBottom: 64, alignItems: 'center' },
