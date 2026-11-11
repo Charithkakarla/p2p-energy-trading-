@@ -4,6 +4,51 @@ Yagami is a peer-to-peer energy trading platform built with Expo and React Nativ
 
 In simple business terms, this is a digital marketplace for electricity.
 
+## Architecture at a Glance
+
+The project is split into a cross-platform Expo client and an independent Hardhat
+workspace. The client currently owns the demo state and presents the settlement
+experience, while the Solidity contract provides the on-chain escrow lifecycle
+for the next integration phase.
+
+```mermaid
+flowchart TD
+    User[Buyer or seller] --> App[Expo React Native app]
+
+    subgraph Client[Frontend client]
+        App --> Router[Expo Router]
+        Router --> Auth[Login and DISCOM onboarding]
+        Router --> Marketplace[Home, buy, sell, trades, wallet, profile]
+        Marketplace --> Map[Nearby map]
+        Marketplace --> Store[In-memory user store]
+        Marketplace --> Chat[Trade negotiation chat]
+        Chat --> Negotiation[Negotiation service]
+        Negotiation -->|API key configured| XAI[xAI Grok API]
+        Negotiation -->|No API key or request failure| Fallback[Rule-based fallback]
+        Marketplace --> Payment[Blockchain payment modal]
+        Payment --> Store
+    end
+
+    subgraph Chain[Blockchain workspace]
+        Payment -. planned contract calls .-> Contract[EnergyTrade.sol]
+        Contract --> Escrow[Escrow and trade lifecycle]
+        Escrow --> Network[Hardhat, Sepolia, or Polygon Amoy]
+    end
+
+    Store --> Ledger[Local trade ledger and wallet summaries]
+```
+
+### Current integration boundary
+
+- **Working in the app:** onboarding, role-based marketplace screens, nearby
+  discovery, negotiation, local trade ledger, and wallet summaries.
+- **Optional external service:** xAI Grok negotiation is used only when
+  `EXPO_PUBLIC_GROK_API_KEY` is configured; otherwise the local fallback is used.
+- **Ready but not wired into the app:** `EnergyTrade.sol` can create trades,
+  lock escrow, confirm delivery, complete settlement, and cancel trades.
+- **Currently simulated:** the payment modal advances through broadcast and
+  confirmation stages and writes a locally generated settlement reference.
+
 ## 1. Executive Summary
 
 This product solves a simple market problem:
@@ -42,7 +87,7 @@ Each role gets its own marketplace experience, but they share the same platform,
 7. User compares the offer rate against the live reference rate.
 8. User negotiates the price through chat.
 9. A trade is created and stored in the ledger.
-10. Payment settlement is simulated in the UI and ready for blockchain integration.
+10. Payment settlement is presented through a simulated UI flow and is ready for direct smart-contract integration.
 
 ## 3. Business Value
 
@@ -245,6 +290,15 @@ Important note:
 - The UI and logic are ready for a real feed later.
 
 ## 9. State and Logic Architecture
+
+The runtime data path is intentionally lightweight for the current prototype:
+
+1. Expo Router loads the role-aware app screens.
+2. Screens read and update the shared in-memory store.
+3. Marketplace actions open negotiation or payment flows.
+4. Negotiation uses xAI when configured and falls back locally when it is not.
+5. Settlement currently updates the local ledger; a future adapter will call
+   `EnergyTrade.sol` and replace the simulated transaction stages.
 
 ### Current state store
 
